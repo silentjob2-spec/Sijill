@@ -11,7 +11,11 @@ const $=id=>document.getElementById(id);
 const today=()=>new Date().toISOString().slice(0,10);
 const DEFAULT_BEHAVIORS=["مشاغبة داخل الصف","تشويش وإزعاج","مخالفة التعليمات","متأخر","خرج من الصف"];
 const ATT_STATUSES=["present","absent","excused"];
+const FIXED_CLOUD_URL="https://script.google.com/macros/s/AKfycbwHPUUQY_Zacs9fzSZ3MWVx4PYxeXHH3pADVVkquH-AUv2umNO_qFq3NEf5zdUmKOGE/exec";
+const CLOUD_READY_KEY="student_manager_cloud_ready";
 let db=loadDB();
+try{if(db.settings&&db.settings.googleAppsScriptUrl)localStorage.setItem(CLOUD_READY_KEY,"1")}catch(e){}
+db.settings={...(db.settings||{}),googleAppsScriptUrl:FIXED_CLOUD_URL};
 
 function loadDB(){
   try{
@@ -636,8 +640,18 @@ function renderHome(){
     ['تأخير / خروج',b.filter(x=>x.type==='متأخر'||x.type==='خرج من الصف'||x.action==='إخراج من الصف').length]
   ].map(x=>`<div class="stat"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
 }
+function normTime(t){
+  const m=String(t||"").match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM|am|pm|ص|م)?/);
+  if(!m)return "";
+  let h=parseInt(m[1],10);const suf=(m[3]||"").toLowerCase();
+  if((suf==="pm"||suf==="م")&&h<12)h+=12;
+  if((suf==="am"||suf==="ص")&&h===12)h=0;
+  return String(h).padStart(2,"0")+":"+m[2];
+}
+function fixBadTimes(){db.behaviors.forEach(b=>{if(b.time){const n=normTime(b.time);if(n)b.time=n}})}
 function renderAll(){
   normalizeAttendance();
+  fixBadTimes();
   fillClasses();
   fillBehaviorTypes();
   fillBehaviorStudents();
@@ -700,9 +714,9 @@ function resetAllData(){
 }
 
 /* ---------- Google Sheets integration ---------- */
-function loadCloudSettings(){if($("cloudUrl"))$("cloudUrl").value=db.settings?.googleAppsScriptUrl||""}
-function saveCloudUrl(){const u=$("cloudUrl").value.trim();db.settings={...(db.settings||{}),googleAppsScriptUrl:u};localStorage.setItem(KEY,JSON.stringify(db));setCloudStatus(u?'تم حفظ رابط Google Apps Script.':'تم مسح رابط الربط.','ok')}
-function cloudUrl(){return (db.settings?.googleAppsScriptUrl||"").trim()}
+function loadCloudSettings(){if($("cloudUrl"))$("cloudUrl").value=FIXED_CLOUD_URL}
+function saveCloudUrl(){setCloudStatus("الرابط مثبّت داخل الموقع ولا يمكن تغييره.","ok")}
+function cloudUrl(){return FIXED_CLOUD_URL}
 function setCloudStatus(msg,type=''){$("cloudStatus")&&($("cloudStatus").className='cloud-status '+type,$("cloudStatus").textContent=msg)}
 async function cloudGet(action){
   const u=cloudUrl();
@@ -733,18 +747,22 @@ async function pullFromCloud(){
     setCloudStatus('جارٍ الاسترداد من Sheets...');
     const x=await cloudGet('getAll');
     if(!x.data)throw Error('لم تصل بيانات.');
+    const oldTimes=new Map((db.behaviors||[]).map(b=>[b.id,b.time]));
     db={...x.data,days:Array.isArray(x.data.days)?x.data.days:[],settings:{...(db.settings||{}),...(x.data.settings||{})},behaviorTypes:Array.isArray(x.data.behaviorTypes)&&x.data.behaviorTypes.length?x.data.behaviorTypes:DEFAULT_BEHAVIORS.slice()};
+    (db.behaviors||[]).forEach(b=>{const n=normTime(b.time);if(n)b.time=n;else if(oldTimes.get(b.id)&&normTime(oldTimes.get(b.id)))b.time=normTime(oldTimes.get(b.id));else b.time=""});
     normalizeAttendance();localStorage.setItem(KEY,JSON.stringify(db));renderAll();
-    setCloudStatus('تم استرداد البيانات من Google Sheets بنجاح.','ok');
+    markCloudReady();setCloudStatus('تم استرداد البيانات من Google Sheets بنجاح.','ok');
   }catch(e){setCloudStatus(e.message,'error')}
 }
 async function pushToCloud(){
   try{
     setCloudStatus('جارٍ رفع البيانات إلى Sheets...');
     const x=await cloudPost('saveAll',{data:{classes:db.classes,students:db.students,attendance:db.attendance,behaviors:db.behaviors,behaviorTypes:db.behaviorTypes,days:db.days}});
-    setCloudStatus(x.message||'تم رفع البيانات إلى Sheets.','ok');
+    markCloudReady();setCloudStatus(x.message||'تم رفع البيانات إلى Sheets.','ok');
   }catch(e){setCloudStatus(e.message,'error')}
 }
-function queueCloudSync(){if(!cloudUrl())return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>pushToCloud().catch(()=>{}),1200)}
+function cloudReady(){return localStorage.getItem(CLOUD_READY_KEY)==="1"}
+function markCloudReady(){try{localStorage.setItem(CLOUD_READY_KEY,"1")}catch(e){}}
+function queueCloudSync(){if(!cloudUrl()||!cloudReady())return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>pushToCloud().catch(()=>{}),1200)}
 
 init();seedDatabaseFile();

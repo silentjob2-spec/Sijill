@@ -73,3 +73,12 @@ body{background:linear-gradient(135deg,#f6f8fc 0%,#eef3f9 100%)}
 .image-preview:hover{transform:scale(1.03)}
 .image-preview-info{display:flex;flex-direction:column;gap:9px;font-size:13px;font-weight:700;color:#3a4a63}
 @media(max-width:760px){.image-field-row{flex-direction:column;align-items:stretch}.image-preview-card{flex-direction:column;text-align:center}.image-preview{width:100%;height:auto;max-height:220px}}
+/* V16 - behavior form spacing, fixed cloud link */
+.behavior-form{align-items:start;gap:22px 20px}
+.behavior-form label{gap:9px}
+.behavior-form input,.behavior-form select{height:48px;font-size:15px;padding:8px 14px}
+.behavior-form input[type="date"],.behavior-form input[type="time"]{letter-spacing:.4px;font-weight:600;min-width:0}
+.behavior-form .dropdown-picker{margin-top:0}
+.behavior-form .select-button{height:48px;font-size:15px;padding:0 14px}
+.behavior-form .dropdown-menu{top:54px}
+.locked-input{background:#f3f6fa!important;color:#3b4a63;cursor:default;font-size:12.5px}
