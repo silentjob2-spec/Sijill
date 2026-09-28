@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نظام إدارة الطلاب</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand"><div class="brand-icon">م</div><div><strong>نظام الطلاب</strong><small>إدارة الحضور والسلوك</small></div></div>
+  <nav>
+    <button class="nav active" data-page="home">الرئيسية</button>
+    <button class="nav" data-page="classes">الصفوف والشعب</button>
+    <button class="nav" data-page="students">الطلاب</button>
+    <button class="nav" data-page="attendance">الحضور والغياب</button>
+    <button class="nav" data-page="behavior">السلوك والتأخير والخروج</button>
+    <button class="nav" data-page="reports">التقارير</button>
+    <button class="nav" data-page="backup">النسخ الاحتياطي</button>
+    <button class="nav" data-page="cloud">Google Sheets</button>
+  </nav>
+</aside>
+<main class="main">
+<header class="topbar"><div><h1 id="pageTitle">الرئيسية</h1><div id="clock" class="clock"></div></div></header>
+
+<section id="home" class="page">
+  <div class="stats" id="homeStats"></div>
+  <div class="panel welcome"><h2>لوحة التحكم</h2><p>من هنا يمكنك إدارة الصفوف والطلاب، تسجيل الحضور والغياب اليومي، وتوثيق السلوك والتأخير والخروج، ثم إنشاء تقارير واضحة قابلة للطباعة.</p></div>
+</section>
+
+<section id="classes" class="page hidden">
+<div class="panel"><div class="form-grid"><label>الصف<input id="className" placeholder="مثال: الأول الثانوي"></label><label>الشعبة<input id="sectionName" placeholder="مثال: أ"></label><div class="end"><button class="primary" onclick="addClass()">إضافة الصف والشعبة</button></div></div></div>
+  <div class="panel" id="classList"></div>
+</section>
+
+<section id="students" class="page hidden">
+<div class="grid-2">
+    <div class="panel"><h3>إضافة طالب</h3><div class="form-grid one"><label>الصف والشعبة<select id="studentClass"></select></label><label>اسم الطالب<input id="studentName" placeholder="اسم الطالب"></label></div><button class="primary" onclick="addStudent()">إضافة الطالب</button></div>
+    <div class="panel"><h3>إضافة مجموعة طلاب</h3><label>الصف والشعبة<select id="bulkClass"></select></label><label class="mt">الأسماء<textarea id="bulkNames" placeholder="اكتب كل اسم في سطر مستقل"></textarea></label><button class="primary" onclick="addBulk()">إضافة المجموعة</button></div>
+  </div>
+  <div class="panel"><div class="panel-head"><h3>قائمة الطلاب</h3><div class="panel-head-tools"><select id="studentFilterClass" class="small-search" onchange="renderStudents()"></select><input class="small-search" id="studentSearch" placeholder="بحث باسم الطالب" oninput="renderStudents()"></div></div><div id="studentList"></div></div>
+</section>
+
+<section id="attendance" class="page hidden">
+<div class="panel">
+    <div class="form-grid"><label>التاريخ<input type="date" id="attDate"></label><label>الصف والشعبة<select id="attClass" onchange="renderAttendance()"></select></label><label>حالة اليوم<select id="dayStatus" onchange="changeDayStatus()"><option value="school">يوم دراسي</option><option value="holiday">يوم عطلة</option><option value="leave">إجازة</option></select></label></div>
+    <div id="dayStatusNote" class="day-status-note hidden"></div>
+    <div class="attendance-progress"><div><span>المسجل اليوم</span><b id="attCounter">0 / 0</b></div><div class="progress"><i id="attProgress"></i></div><div class="mini-counts"><span>حاضر <b id="attPresentCount">0</b></span><span>غائب <b id="attAbsentCount">0</b></span><span>غائب بعذر <b id="attExcusedCount">0</b></span><span>غير مسجل <b id="attUnrecordedCount">0</b></span></div></div>
+    <div class="toolbar"><button class="soft" onclick="allAtt('present')">تسجيل الجميع حاضر</button><button class="soft danger-soft" onclick="allAtt('absent')">تسجيل الجميع غائب</button><button class="soft excused-soft" onclick="allAtt('excused')">تسجيل الجميع بعذر</button><span class="auto-note">يتم حفظ الحالة تلقائيًا عند اختيارها.</span></div>
+  </div>
+  <div class="panel" id="attList"></div>
+</section>
+
+<section id="behavior" class="page hidden">
+<div class="panel">
+    <h3>تسجيل حالة</h3>
+    <div class="form-grid behavior-form"><label>الصف والشعبة<select id="behClass" onchange="fillBehaviorStudents()"></select></label><label>الطالب<select id="behStudent"></select></label><label class="date-field">التاريخ<input type="date" id="behDate"></label><label>الحصة<select id="behPeriod"></select></label><label class="time-field">الوقت<input type="time" id="behTime"></label><label>السلوك<div class="dropdown-picker" id="behTypeWrap"><button type="button" class="select-button" onclick="toggleBehTypeMenu()"><span id="behTypeLabel">اختر سلوكًا</span><span>⌄</span></button><div id="behTypeMenu" class="dropdown-menu hidden"><input type="text" class="table-input beh-type-search" id="behTypeSearch" placeholder="اكتب للبحث..." oninput="renderBehTypeOptions()"><div id="behTypeOptions"></div></div><input type="hidden" id="behType"></div></label><label>الإجراء<select id="behAction"><option>لا يوجد إجراء</option><option selected>تنبيه</option><option>إخراج من الصف</option><option>إحالة للإدارة</option><option>استدعاء ولي الأمر</option></select></label></div>
+    <label class="mt">الملاحظات<textarea id="behNotes" placeholder="اكتب تفاصيل الحالة إن وجدت"></textarea></label>
+    <div class="mt image-field">
+      <span>صورة أو مستند مرفق (اختياري)</span>
+      <div class="image-field-row">
+        <label class="file-button image-pick-btn">📷 اختيار صورة أو تصويرها<input type="file" id="behImageInput" accept="image/*" capture="environment" onchange="handleBehaviorImageSelect(event)"></label>
+        <span id="behImageFileName" class="hint">لم يتم اختيار صورة</span>
+      </div>
+      <p class="hint">يمكنك اختيار صورة من الجهاز أو تصويرها مباشرة من الجوال. تُضغط الصورة تلقائيًا لتقليل حجمها، ويُفضّل عدم إرفاق عدد كبير جدًا من الصور لأن مساحة تخزين المتصفح محدودة.</p>
+      <div id="behImagePreviewWrap" class="image-preview-card hidden">
+        <img id="behImagePreview" class="image-preview" alt="معاينة الصورة المرفقة" onclick="viewPendingBehaviorImage()">
+        <div class="image-preview-info"><span>معاينة الصورة المرفقة</span><button type="button" class="soft danger-soft" onclick="removeBehaviorImage()">إزالة الصورة</button></div>
+      </div>
+    </div>
+    <div class="toolbar"><button class="primary" id="behSaveBtn" onclick="saveBehavior()">حفظ الحالة</button><button class="soft hidden" id="behCancelEditBtn" onclick="cancelEditBehavior()">إلغاء التعديل</button></div>
+  </div>
+  <div class="panel"><h3>إضافة سلوك جديد</h3><div class="inline-form"><input id="newBehavior" placeholder="مثال: استخدام الهاتف"><button class="primary" onclick="addBehaviorType()">إضافة السلوك</button><button class="soft" onclick="openBehaviorManager()">إدارة السلوكيات وتعديل الأسماء</button></div></div>
+<div id="behaviorManager" class="modal hidden"><div class="modal-card"><div class="modal-head"><h3>إدارة السلوكيات</h3><button class="soft" onclick="closeBehaviorManager()">إغلاق</button></div><input class="small-search full-width" id="behaviorManagerSearch" placeholder="بحث في السلوكيات" oninput="renderBehaviorManager()"><div id="behaviorManagerList"></div></div></div>
+<div id="imageViewerModal" class="modal hidden"><div class="modal-card image-viewer-card"><div class="modal-head"><h3>الصورة المرفقة</h3><button class="soft" onclick="closeImageViewer()">إغلاق</button></div><img id="imageViewerImg" alt="صورة مرفقة"></div></div>
+  <div class="panel"><div class="panel-head"><h3>السجل</h3><input class="small-search" id="behaviorListSearch" placeholder="بحث بالطالب أو السلوك أو الإجراء" oninput="renderBehavior()"></div><div id="behaviorList"></div></div>
+</section>
+
+<section id="reports" class="page hidden">
+  <div class="report-tabs">
+    <button class="report-tab active" data-report-tab="attendanceReportSection" onclick="switchReportTab('attendanceReportSection',this)">تقرير الحضور والغياب</button>
+    <button class="report-tab" data-report-tab="behaviorReportSection" onclick="switchReportTab('behaviorReportSection',this)">تقرير السلوك</button>
+  </div>
+
+  <div id="attendanceReportSection" class="report-section">
+    <div class="panel report-controls">
+      <div class="report-title"><span class="report-number">01</span><div><h3>تقرير الحضور والغياب</h3><p>اختر الفترة ثم اضغط «إنشاء التقرير». لا تظهر أي بيانات قبل الطلب.</p></div></div>
+      <div class="form-grid"><label>من تاريخ<input type="date" id="attFrom"></label><label>إلى تاريخ<input type="date" id="attTo"></label><label>الصف والشعبة<select id="attReportClass" onchange="refreshAttendanceStudentSelect()"></select></label><label>الطالب<select id="attReportStudent"></select></label></div>
+      <div class="actions"><button class="primary" onclick="makeAttendanceReport()">إنشاء التقرير</button><button class="soft" onclick="printReport('reportAttendance')">طباعة التقرير</button><button class="soft" onclick="clearReport('reportAttendance')">مسح التقرير</button></div>
+    </div>
+    <div id="reportAttendance" class="report panel report-empty"></div>
+  </div>
+
+  <div id="behaviorReportSection" class="report-section hidden">
+    <div class="panel report-controls">
+      <div class="report-title"><span class="report-number">02</span><div><h3>تقرير السلوك</h3><p>اختر الطلاب والفترة ثم اضغط «إنشاء التقرير». لا تظهر أي بيانات قبل الطلب.</p></div></div>
+      <div class="form-grid"><label>من تاريخ<input type="date" id="behFrom"></label><label>إلى تاريخ<input type="date" id="behTo"></label><label>الصف والشعبة<select id="behReportClass" onchange="behaviorSelected.clear();refreshBehaviorPicker()"></select></label><label>البحث عن طالب<input id="behReportSearch" placeholder="ابحث عن طالب" oninput="refreshBehaviorPicker()"></label><label>نوع السلوك<div class="dropdown-picker" id="behReportTypeWrap"><button type="button" class="select-button" onclick="toggleBehReportTypeMenu()"><span id="behReportTypeLabel">كل السلوكيات</span><span>⌄</span></button><div id="behReportTypeMenu" class="dropdown-menu hidden"><input type="text" class="table-input beh-type-search" id="behReportTypeSearchBox" placeholder="ابحث ضمن السلوكيات..." oninput="renderBehReportTypeOptions()"><div id="behReportTypeOptions"></div></div><input type="hidden" id="behReportType"></div></label></div>
+      <div class="dropdown-picker" id="behaviorPickerWrap"><button type="button" class="select-button" onclick="toggleBehaviorPicker()"><span id="behaviorPickerLabel">جميع الطلاب حسب الاختيار</span><span>⌄</span></button><div id="behaviorPicker" class="dropdown-menu hidden"></div></div>
+      <div class="actions"><button class="primary" onclick="makeBehaviorReport()">إنشاء التقرير</button><button class="soft" onclick="printReport('reportBehavior')">طباعة التقرير</button><button class="soft" onclick="clearReport('reportBehavior')">مسح التقرير</button></div>
+    </div>
+    <div id="reportBehavior" class="report panel report-empty"></div>
+  </div>
+</section>
+<section id="backup" class="page hidden">
+<div class="panel backup-box"><button class="primary" onclick="downloadBackup()">تصدير نسخة احتياطية</button><label class="file-button">استرداد نسخة<input type="file" accept=".json" onchange="restoreBackup(event)"></label><p id="backupInfo" class="hint"></p></div>
+<div class="panel data-management"><h3>تصفير / حذف البيانات</h3><p class="hint">استخدم هذه الخيارات بحذر. يفضل تصدير نسخة احتياطية قبل حذف أي بيانات.</p><div class="danger-actions"><button class="soft danger-soft danger-button" onclick="clearAttendanceData()">تصفير الحضور والغياب</button><button class="soft danger-soft danger-button" onclick="clearBehaviorData()">تصفير السلوك والتأخير والخروج</button><button class="soft danger-soft danger-button" onclick="resetAllData()">تصفير النظام بالكامل</button></div></div>
+</section>
+<section id="cloud" class="page hidden">
+  <div class="panel cloud-panel"><h3>ربط الموقع مع Google Sheets</h3><p class="hint">رابط Google Apps Script مثبّت داخل الموقع ولا يتغيّر. الموقع يحفظ محليًا أيضًا، ويمكنك المزامنة يدويًا أو تلقائيًا.</p>
+    <label>رابط Google Apps Script Web App<input id="cloudUrl" readonly dir="ltr" class="locked-input"></label>
+    <div class="cloud-actions"><button class="soft" onclick="testCloud()">اختبار الاتصال</button><button class="soft" onclick="pullFromCloud()">استرداد من Sheets</button><button class="soft" onclick="pushToCloud()">رفع البيانات إلى Sheets</button></div>
+    <div id="cloudStatus" class="cloud-status"></div>
+  </div>
+  <div class="panel"><h3>ملاحظات مهمة</h3><ul class="cloud-notes"><li>Google Sheets هي قاعدة البيانات المركزية، بينما GitHub Pages يستضيف ملفات الموقع فقط.</li><li>لا تضع كلمة مرور Google داخل الموقع.</li><li>يمكنك الاحتفاظ بنسخة Excel/Google Sheets ونسخة JSON احتياطية.</li><li>الصور المرفقة بحالات السلوك تُزامن أيضًا مع Sheets، لكن خلايا الجداول محدودة بحوالي 50 ألف حرف؛ الصور الكبيرة جدًا قد تفشل مزامنتها رغم أن الموقع يضغطها تلقائيًا.</li></ul></div>
+</section>
+</main>
+<script src="app.js"></script>
+</body></html>
